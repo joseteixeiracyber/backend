@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # =====================
+  # 1. SERVIÇO: API BACK-END
+  # =====================
+  api:
+    build: .
+    container_name: gestao-financeira-api
+    restart: always
+    
+    # Mapeia a porta 3001 do seu computador para a porta 3001 do contêiner
+    ports:
+      - "3001:3001"
+      
+    # Mapeamento de volumes para Hot Reloading (se você usar Nodemon ou similar)
+    # Se você está usando `node server.js` no CMD, você precisará reiniciar o container manualmente
+    # ou usar um gerenciador de processos como `nodemon` dentro do container para dev.
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules # Impede que o node_modules local sobrescreva o do contêiner
+      
+    # Variáveis de Ambiente
+    # A variável MONGO_URI precisa ser adaptada para usar o nome do serviço 'mongo'
+    environment:
+      # Passa suas credenciais para o contêiner
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      SECRET: ${SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      PORT: ${PORT}
+      # Conecta ao serviço 'mongo' (o nome do serviço)
+      MONGO_URI: mongodb://${DB_USER}:${DB_PASS}@mongo:27017/gestao-financeira-db?authSource=admin
+      
+    # Garante que o MongoDB inicie antes da API
+    depends_on:
+      - mongo
+
+  # =====================
+  # 2. SERVIÇO: MONGODB
+  # =====================
+  mongo:
+    image: mongo:6.0 # Usa uma versão estável e específica do Mongo
+    container_name: gestao-financeira-db
+    restart: always
+    
+    # Configurações de autenticação e banco de dados
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASS}
+      
+    # Mapeia a porta do MongoDB para o seu host (opcional, para usar ferramentas como o Compass)
+    ports:
+      - "27017:27017"
+      
+    # Volume persistente para salvar seus dados
+    volumes:
+      - mongodb_data:/data/db
+
+# =====================
+# 3. VOLUMES
+# =====================
+volumes:
+  mongodb_data:
