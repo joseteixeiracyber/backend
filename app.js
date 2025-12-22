@@ -76,7 +76,7 @@ const validateApiToken = async (req, res, next) => {
 // =========================
 
 // Gerar e Salvar Token Permanente
-app.post('/auth/generate-static-token', async (req, res) => {
+app.post('/auth/generate-static-token', async (req, res) => { // Adicione o 'async' aqui
     try {
         const { userId, userName, tokenName } = req.body;
 
@@ -90,7 +90,6 @@ app.post('/auth/generate-static-token', async (req, res) => {
 
         const token = jwt.sign(payload, JWT_SECRET);
 
-        // SALVANDO NO BANCO DE DADOS
         const newToken = new Token({
             userId,
             name: tokenName || `Token de ${userName}`,
@@ -103,11 +102,11 @@ app.post('/auth/generate-static-token', async (req, res) => {
         res.json({
             success: true,
             token,
-            message: "Token permanente gerado e salvo com sucesso!"
+            message: "Token permanente gerado com sucesso!"
         });
-    } catch (error) {
+    } catch (error) { // Garanta que o catch está fechando o try corretamente
         console.error(error);
-        res.status(500).json({ error: "Erro ao gerar token" });
+        res.status(500).json({ error: "Erro ao processar solicitação" });
     }
 });
 
