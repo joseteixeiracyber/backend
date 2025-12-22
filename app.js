@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs'); // Melhor compatibilidade
+const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
@@ -15,52 +15,121 @@ const Investimento = require('./models/Investimento');
 const Categoria = require('./models/Categoria');
 const Emprestimo = require('./models/Emprestimo');
 const CartaoCredito = require('./models/CartaoCredito');
-// Removendo a importação de decrypt se não estiver em uso direto
-// const { decrypt } = require('./utils/encryption'); 
+const Token = require('./models/Token'); // 🟢 Adicionado!
 
 const app = express();
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET;
 
 // =========================
 // 🔥 CORS CONFIG
 // =========================
 app.use(cors({
-    origin: 'https://painel.jtmoney.cloud', // Permite apenas o seu front-end
+    origin: 'https://painel.jtmoney.cloud',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// =========================
-// 📌 JSON
-// =========================
 app.use(express.json());
 
 // =========================
-// 📌 ROTA PRINCIPAL
+// 🔒 MIDDLEWARES DE PROTEÇÃO
 // =========================
-app.get('/', (req, res) => {
-    res.status(200).json('Bem vindo a nossa API!');
-});
 
-// =========================
-// 🔒 MIDDLEWARE DE AUTENTICAÇÃO
-// =========================
+// Middleware padrão (Login do Front-end)
 function checkToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ msg: 'Acesso negado!' });
 
-    if (!token) {
-        return res.status(401).json({ msg: 'Acesso negado!' });
-    }
-
-    try {
-        const secret = process.env.SECRET;
-        jwt.verify(token, secret);
-        next();
-    } catch (error) {
-        return res.status(401).json({ msg: 'Token inválido ou expirado!' });
-    }
+    try {
+        const secret = process.env.SECRET;
+        const decoded = jwt.verify(token, secret);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ msg: 'Token inválido ou expirado!' });
+    }
 }
 
+// Middleware para Tokens Permanentes (API/IA)
+const validateApiToken = async (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const tokenString = authHeader && authHeader.split(' ')[1];
+
+    if (!tokenString) return res.status(401).json({ error: "Token não fornecido" });
+
+    try {
+        // Verifica se o token existe no banco e está ativo
+        const storedToken = await Token.findOne({ token: tokenString, active: true });
+        if (!storedToken) return res.status(401).json({ error: "Token revogado ou inexistente" });
+
+        const decoded = jwt.verify(tokenString, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(403).json({ error: "Token inválido" });
+    }
+};
+
+// =========================
+// 🎫 ROTAS DE TOKEN (ADMIN)
+// =========================
+
+// Gerar e Salvar Token Permanente
+app.post('/auth/generate-static-token', async (req, res) => {
+    try {
+        const { userId, userName, tokenName } = req.body;
+
+        if (!userId) return res.status(400).json({ error: "ID do usuário é obrigatório" });
+
+        const payload = {
+            id: userId,
+            name: userName,
+            permissions: { createRecords: true, isAdmin: true }
+        };
+
+        const token = jwt.sign(payload, JWT_SECRET);
+
+        // SALVANDO NO BANCO DE DADOS
+        const newToken = new Token({
+            userId,
+            name: tokenName || `Token de ${userName}`,
+            token: token,
+            permissions: payload.permissions
+        });
+
+        await newToken.save();
+
+        res.json({
+            success: true,
+            token,
+            message: "Token permanente gerado e salvo com sucesso!"
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erro ao gerar token" });
+    }
+});
+
+// Listar tokens de um usuário (Para o Front-end)
+app.get('/auth/my-tokens/:userId', checkToken, async (req, res) => {
+    try {
+        const tokens = await Token.find({ userId: req.params.userId });
+        res.json(tokens);
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao buscar tokens" });
+    }
+});
+
+// "Apagar" (Revogar) um token
+app.delete('/auth/token/:id', checkToken, async (req, res) => {
+    try {
+        await Token.findByIdAndDelete(req.params.id);
+        res.json({ msg: "Token removido com sucesso!" });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao remover token" });
+    }
+});
 // =========================
 // 🔒 ROTA PROTEGIDA / GET USER
 // =========================
