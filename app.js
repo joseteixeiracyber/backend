@@ -23,7 +23,11 @@ const app = express();
 // =========================
 // 🔥 CORS CONFIG
 // =========================
-app.use(cors());
+app.use(cors({
+    origin: 'https://painel.jtmoney.cloud', // Permite apenas o seu front-end
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // =========================
 // 📌 JSON
