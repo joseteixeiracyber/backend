@@ -40,6 +40,6 @@ const connectionString = `mongodb://${decodeURIComponent(DB_USER)}:${decodeURICo
 
 mongoose.connect(connectionString)
     .then(() => {
-        app.listen(3001, () => console.log('🚀 Servidor MEY online na porta 3001'));
+        app.listen(3001, () => console.log('✅Servidor MEY online na porta 3001'));
     })
     .catch(err => console.error("Falha na conexão DB:", err));
