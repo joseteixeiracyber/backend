@@ -47,7 +47,42 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ msg: 'Erro ao autenticar usuário', error });
     }
 });
+//  ROTA DE TROCA: Token Estático -> JWT de Sessão
+router.post('/exchange-token', async (req, res) => {
+    try {
+        const { staticToken } = req.body;
 
+        if (!staticToken) {
+            return res.status(400).json({ error: "O token estático é obrigatório" });
+        }
+
+        // 1. Procura o token no banco de dados
+        const storedToken = await Token.findOne({ token: staticToken, active: true });
+
+        if (!storedToken) {
+            return res.status(401).json({ error: "Token estático inválido ou revogado" });
+        }
+
+        // 2. Gera um JWT de sessão (igual ao do login)
+        // Usamos o userId que está gravado no Token Estático
+        const sessionToken = jwt.sign(
+            { id: storedToken.userId }, 
+            process.env.SECRET, 
+            { expiresIn: '3h' }
+        );
+
+        // 3. Retorna o userId e o novo token de acesso
+        res.status(200).json({
+            msg: "Token validado com sucesso!",
+            token: sessionToken,
+            userId: storedToken.userId
+        });
+
+    } catch (error) {
+        console.error("Erro na troca de token:", error);
+        res.status(500).json({ error: "Erro interno ao validar token" });
+    }
+});
 // Tokens Estáticos para IA
 router.post('/generate-static-token', async (req, res) => {
     try {
