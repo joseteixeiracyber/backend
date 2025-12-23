@@ -9,8 +9,8 @@ const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET;
 
 // Registro
 router.post('/register', async (req, res) => {
-    const { name, email, password, confirmpassword } = req.body;
-    if (!name || !email || !password) return res.status(422).json({ msg: 'O nome, email e senha são obrigatórios!' });
+    const { name, email, telefone, password, confirmpassword } = req.body;
+    if (!name || !email || !telefone || !password) return res.status(422).json({ msg: 'O nome, email, telefone e senha são obrigatórios!' });
     if (password !== confirmpassword) return res.status(422).json({ msg: 'As senhas não conferem!' });
 
     const userExists = await User.findOne({ email });
@@ -18,7 +18,7 @@ router.post('/register', async (req, res) => {
 
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(password, salt);
-    const user = new User({ name, email, password: passwordHash });
+    const user = new User({ name, email, telefone, password: passwordHash });
 
     try {
         await user.save();
@@ -75,7 +75,8 @@ router.post('/exchange-token', async (req, res) => {
         res.status(200).json({
             msg: "Token validado com sucesso!",
             token: sessionToken,
-            userId: storedToken.userId
+            userId: storedToken.userId,
+            telefone: storedToken.telefone || null
         });
 
     } catch (error) {
