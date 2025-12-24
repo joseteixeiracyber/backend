@@ -141,29 +141,36 @@ router.delete('/token/:id', checkToken, async (req, res) => {
 router.get('/get-token-by-phone/:telefone', async (req, res) => {
     try {
         const { telefone } = req.params;
+        console.log("Recebido do n8n:", telefone); // Log para debug
 
-        // Limpa o número (remove @s.whatsapp.net se o n8n enviar o JID completo)
-        const foneLimpo = telefone.replace('@s.whatsapp.net', '');
+        // 1. Limpeza rigorosa: remove tudo que não for número
+        const apenasNumeros = telefone.replace(/\D/g, '');
+        console.log("Número limpo para busca:", apenasNumeros);
 
+        // 2. Busca flexível: procura o número dentro da string (caso tenha 55 ou não)
         const tokenData = await Token.findOne({ 
-            telefone: foneLimpo, 
+            telefone: { $regex: apenasNumeros }, 
             active: true 
         });
 
         if (!tokenData) {
+            console.log("Aviso: Token não encontrado para este número.");
             return res.status(404).json({ 
-                error: "Nenhum token vinculado a este telefone.",
-                vinculado: false 
+                vinculado: false,
+                msg: "Nenhum token encontrado." 
             });
         }
 
+        console.log("Sucesso: Token encontrado para o usuário", tokenData.userId);
         res.json({
             vinculado: true,
             token: tokenData.token,
-            userId: tokenData.userId
+            userId: tokenData.userId,
+            telefone: tokenData.telefone
         });
     } catch (error) {
-        res.status(500).json({ error: "Erro ao buscar token por telefone" });
+        console.error("Erro na rota de busca:", error);
+        res.status(500).json({ error: "Erro interno no servidor" });
     }
 });
 
