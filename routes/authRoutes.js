@@ -142,20 +142,21 @@ router.get('/get-token-by-phone/:telefone', async (req, res) => {
     try {
         const { telefone } = req.params;
 
-        // 1. Limpeza rigorosa: remove tudo que não for número
+        // 1. Limpeza rigorosa
         const apenasNumeros = telefone.replace(/\D/g, '');
 
-        // 2. Busca flexível: procura o número dentro da string (caso tenha 55 ou não)
+        // 2. Busca EXATA
+        // Removemos o $regex para evitar que '2424' encontre '24243'
         const tokenData = await Token.findOne({ 
-            telefone: { $regex: apenasNumeros }, 
+            telefone: apenasNumeros, 
             active: true 
         });
 
         if (!tokenData) {
-            console.log("Aviso: Token não encontrado para este número.");
+            console.log(`Aviso: Token não encontrado para o número exato: ${apenasNumeros}`);
             return res.status(404).json({ 
                 vinculado: false,
-                msg: "Nenhum token encontrado." 
+                msg: "Nenhum token encontrado para este número exato." 
             });
         }
 
