@@ -90,19 +90,31 @@ router.post('/generate-static-token', async (req, res) => {
         const { userId, userName, tokenName } = req.body;
         if (!userId) return res.status(400).json({ error: "ID do usuário é obrigatório" });
 
-        const payload = { id: userId, name: userName, permissions: { createRecords: true, isAdmin: true } };
+        // --- CORREÇÃO AQUI: Buscar o usuário para pegar o telefone ---
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
+
+        const payload = { 
+            id: userId, 
+            name: userName, 
+            telefone: user.telefone, // Incluindo no payload do JWT se desejar
+            permissions: { createRecords: true, isAdmin: true } 
+        };
+        
         const token = jwt.sign(payload, JWT_SECRET);
 
         const newToken = new Token({
             userId,
             name: tokenName || `Token de ${userName}`,
             token: token,
+            telefone: user.telefone, // <--- SALVANDO O TELEFONE NO MODELO TOKEN
             permissions: payload.permissions
         });
 
         await newToken.save();
         res.json({ success: true, token, message: "Token gerado com sucesso!" });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: "Erro ao gerar token" });
     }
 });
