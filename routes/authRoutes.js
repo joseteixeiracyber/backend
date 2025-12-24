@@ -161,7 +161,6 @@ router.get('/get-token-by-phone/:telefone', async (req, res) => {
             });
         }
 
-        console.log("Sucesso: Token encontrado para o usuário", tokenData.userId);
         res.json({
             vinculado: true,
             token: tokenData.token,
