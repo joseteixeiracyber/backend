@@ -171,4 +171,65 @@ router.get('/get-token-by-phone/:telefone', async (req, res) => {
     }
 });
 
+// Útil para painéis administrativos
+router.get('/users', checkToken, async (req, res) => {
+    try {
+        // .select('-password') garante que a senha (hash) não seja enviada no JSON
+        const users = await User.find().select('-password');
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ msg: 'Erro ao buscar usuários', error: error.message });
+    }
+});
+
+// --- ROTA: Consultar um único usuário por ID ---
+router.get('/user/:id', checkToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+        if (!user) return res.status(404).json({ msg: 'Usuário não encontrado!' });
+        
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ msg: 'Erro ao buscar usuário', error: error.message });
+    }
+});
+
+// --- ROTA: Deletar Usuário ---
+router.delete('/user/:id', checkToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Verifica se o usuário existe
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ msg: 'Usuário não encontrado!' });
+        }
+
+        // Opcional: Impedir que o usuário delete a si mesmo via API sem querer
+        // if (req.userId !== id) return res.status(401).json({ msg: 'Não autorizado!' });
+
+        await User.findByIdAndDelete(id);
+
+        res.status(200).json({ msg: 'Usuário e conta removidos com sucesso!' });
+    } catch (error) {
+        res.status(500).json({ msg: 'Erro ao deletar usuário', error: error.message });
+    }
+});
+router.delete('/user/full-cleanup/:id', checkToken, async (req, res) => {
+    try {
+        const userId = req.params.id;
+
+        // Apaga tudo vinculado ao ID do usuário em todas as coleções
+        await Promise.all([
+            User.findByIdAndDelete(userId),
+            Receita.deleteMany({ userId }),
+            Despesa.deleteMany({ userId }),
+            Token.deleteMany({ userId })
+        ]);
+
+        res.status(200).json({ msg: 'Usuário e todos os seus dados foram apagados!' });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao realizar limpeza de dados" });
+    }
+});
 module.exports = router;
