@@ -6,6 +6,11 @@ const TokenSchema = new mongoose.Schema({
         ref: 'User', // Referência ao seu modelo de usuário
         required: true
     },
+    telefone: {
+        type: String,
+        required: true,
+        index: true // Melhora a velocidade da busca no banco
+    },
     name: {
         type: String,
         required: true, 
