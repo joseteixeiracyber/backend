@@ -137,4 +137,34 @@ router.delete('/token/:id', checkToken, async (req, res) => {
     }
 });
 
+// Rota para o n8n buscar o token pelo número do WhatsApp
+router.get('/get-token-by-phone/:telefone', async (req, res) => {
+    try {
+        const { telefone } = req.params;
+
+        // Limpa o número (remove @s.whatsapp.net se o n8n enviar o JID completo)
+        const foneLimpo = telefone.replace('@s.whatsapp.net', '');
+
+        const tokenData = await Token.findOne({ 
+            telefone: foneLimpo, 
+            active: true 
+        });
+
+        if (!tokenData) {
+            return res.status(404).json({ 
+                error: "Nenhum token vinculado a este telefone.",
+                vinculado: false 
+            });
+        }
+
+        res.json({
+            vinculado: true,
+            token: tokenData.token,
+            userId: tokenData.userId
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao buscar token por telefone" });
+    }
+});
+
 module.exports = router;
