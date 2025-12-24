@@ -36,7 +36,7 @@ app.get('/user/:id', checkToken, async (req, res) => {
 // Conexão Banco
 const DB_USER = process.env.DB_USER;
 const DB_PASS = process.env.DB_PASS;
-const connectionString = `mongodb://${decodeURIComponent(DB_USER)}:${decodeURIComponent(DB_PASS)}@ia_gestao_financeira:27017/?tls=false`;
+const connectionString = `mongodb://${decodeURIComponent(DB_USER)}:${decodeURIComponent(DB_PASS)}@ia_banco_de_dados:27017/?tls=false`;
 
 mongoose.connect(connectionString)
     .then(() => {
