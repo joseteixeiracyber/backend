@@ -76,7 +76,7 @@ router.post('/exchange-token', async (req, res) => {
             msg: "Token validado com sucesso!",
             token: sessionToken,
             userId: storedToken.userId,
-            telefone: storedToken.telefone || null
+            telefone: storedToken.telefone 
         });
 
     } catch (error) {
