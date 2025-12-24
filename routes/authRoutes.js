@@ -141,11 +141,9 @@ router.delete('/token/:id', checkToken, async (req, res) => {
 router.get('/get-token-by-phone/:telefone', async (req, res) => {
     try {
         const { telefone } = req.params;
-        console.log("Recebido do n8n:", telefone); // Log para debug
 
         // 1. Limpeza rigorosa: remove tudo que não for número
         const apenasNumeros = telefone.replace(/\D/g, '');
-        console.log("Número limpo para busca:", apenasNumeros);
 
         // 2. Busca flexível: procura o número dentro da string (caso tenha 55 ou não)
         const tokenData = await Token.findOne({ 
